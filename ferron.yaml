@@ -1,11 +1,74 @@
 # Global server configuration
 global:
   port: 8080
-  logFilePath: access.log
-  errorLogFilePath: error.log
+  sport: 8443
+  secure: true
+  enableHTTP2: true
+  http2settings:
+    initialWindowSize: 65536
+    maxFrameSize: 16384
+    maxConcurrentStreams: 100
+    maxHeaderListSize: 8192
+    enableConnectProtocol: true
+  logFilePath: "/var/log/ferron/access.log"
+  errorLogFilePath: "/var/log/ferron/error.log"
+  cert: "/etc/ssl/certs/fallback.crt"
+  key: "/etc/ssl/private/fallback.key"
+  tlsMinVersion: "TLSv1.2"
+  tlsMaxVersion: "TLSv1.3"
+  disableNonEncrytedServer: false
+  enableOCSPStapling: true
+  blocklist:
+    - "192.168.1.100"
+    - "10.0.0.5"
+  enableCompression: true
+  enableDirectoryListing: false
+  environmentVariables:
+    APP_MODE: "production"
+    MAX_THREADS: "16"
   loadModules:
-   - cgi
-  wwwroot: wwwroot # Replace "wwwroot" with desired webroot
-  enableDirectoryListing: true
-  cgiScriptExtensions:
-   - .php # Necessary to be able to execute PHP scripts via PHP-CGI
+    - "rproxy"
+  sni:
+    "example.com":
+      cert: "/etc/ssl/certs/example-com.crt"
+      key: "/etc/ssl/private/example-com.key"
+    "*.example.com":
+      cert: "/etc/ssl/certs/example-com.crt"
+      key: "/etc/ssl/private/example-com.key"
+host:
+  - domain: "example.com"
+    serverAdministratorEmail: "admin@example.com"
+    customHeaders:
+      X-Frame-Options: "DENY"
+      X-Content-Type-Options: "nosniff"
+    rewriteMap:
+      - regex: "^/old-path/(.*)"
+        replacement: "/new-path/$1"
+        isNotFile: true
+        isNotDirectory: true
+        last: true
+    wwwroot: "/var/www/example"
+    errorPages:
+      - scode: 404
+        path: "/var/www/example/errors/404.html"
+      - scode: 500
+        path: "/var/www/example/errors/500.html"
+    locations:
+      - path: "/static"
+        wwwroot: "/var/www/static"
+        rewriteMap:
+          - regex: "^/static(?:[/?#](.*))?"
+            replacement: "/$1"
+            last: true
+  - domain: "api.example.com"
+    serverAdministratorEmail: "api-admin@example.com"
+    disableToHTTPSRedirect: false
+    allowDoubleSlashes: false
+    enableETag: true
+    users:
+      - user: "admin"
+        pass: "$2b$10$hashedpassword12345"
+    nonStandardCodes:
+      - scode: 401
+        url: "/restricted.html"
+    proxyTo: "http://backend-service:5000"
